@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "JaxPlayground"
+  site-url: "https://Jorgvt.github.io/JaxPlayground"
+  description: "The place to try out JaX things!"
+  repo-branch: main
+  repo-url: "https://github.com/Jorgvt/JaxPlayground"
