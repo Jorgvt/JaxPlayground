@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.340">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Adding wandb logging into the basic example.">
+
+<title>JaxPlayground - Image Classification in JAX using TrainState (and WandB!)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="JaxPlayground - Image Classification in JAX using TrainState (and WandB!)">
+<meta property="og:description" content="Adding wandb logging into the basic example.">
+<meta property="og:site-name" content="JaxPlayground">
+<meta name="twitter:title" content="JaxPlayground - Image Classification in JAX using TrainState (and WandB!)">
+<meta name="twitter:description" content="Adding wandb logging into the basic example.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">JaxPlayground</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools ms-auto">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../00_Supervised/00_iqa.html">Supervised</a></li><li class="breadcrumb-item"><a href="../00_Supervised/01b_img_cls_wandb.html">Image Classification in JAX using <code>TrainState</code> (and <code>WandB</code>!)</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">JaxPlayground</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Supervised</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_Supervised/00_iqa.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Performing a simple IQA example with JaX</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_Supervised/00b_iqa_parametric.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">IQA tracking params and variables</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_Supervised/01_image_classification_trainstate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Image Classification in JAX using <code>TrainState</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_Supervised/01b_img_cls_wandb.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Image Classification in JAX using <code>TrainState</code> (and <code>WandB</code>!)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_Supervised/01c_checkpointing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Image Classification in JAX using <code>TrainState</code> (and <code>WandB</code>!) ((and checkpointing!!))</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">Generative</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../02_Generative/00_vae.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Variational Autoencoder implemented in JaX!</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../03_Utils/00_parameter_constrains.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Parameter constraints</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../03_Utils/01_wandb_weights_logging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">W&amp;B Weights Logging!</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#get-the-data" id="toc-get-the-data" class="nav-link active" data-scroll-target="#get-the-data">Get the data</a></li>
+  <li><a href="#define-the-model-were-going-to-use" id="toc-define-the-model-were-going-to-use" class="nav-link" data-scroll-target="#define-the-model-were-going-to-use">Define the model we’re going to use</a></li>
+  <li><a href="#define-the-metrics-with-clu" id="toc-define-the-metrics-with-clu" class="nav-link" data-scroll-target="#define-the-metrics-with-clu">Define the metrics with <code>clu</code></a></li>
+  <li><a href="#defining-the-training-step" id="toc-defining-the-training-step" class="nav-link" data-scroll-target="#defining-the-training-step">Defining the training step</a></li>
+  <li><a href="#train-the-model" id="toc-train-the-model" class="nav-link" data-scroll-target="#train-the-model">Train the model!</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Jorgvt/JaxPlayground/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Image Classification in JAX using <code>TrainState</code> (and <code>WandB</code>!)</h1>
+</div>
+
+<div>
+  <div class="description">
+    Adding <code>wandb</code> logging into the basic example.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tensorflow <span class="im">as</span> tf</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>tf.config.set_visible_devices([], device_type<span class="op">=</span><span class="st">'GPU'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-04-26 17:33:24.463105: I tensorflow/core/util/port.cc:110] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2023-04-26 17:33:24.513451: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2023-04-26 17:33:26.594757: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any, Callable, Sequence, Union</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> lax, random, numpy <span class="im">as</span> jnp</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> flax.core <span class="im">import</span> freeze, unfreeze</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> flax <span class="im">import</span> linen <span class="im">as</span> nn</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> flax <span class="im">import</span> struct</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> flax.training <span class="im">import</span> train_state</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> optax</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> clu <span class="im">import</span> metrics</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> ml_collections <span class="im">import</span> ConfigDict</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> einops <span class="im">import</span> <span class="bu">reduce</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> wandb</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> iqadatasets.datasets <span class="im">import</span> <span class="op">*</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="get-the-data" class="level2">
+<h2 class="anchored" data-anchor-id="get-the-data">Get the data</h2>
+<blockquote class="blockquote">
+<p>We’ll be using MNIST from Keras.</p>
+</blockquote>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(X_train, Y_train), (X_test, Y_test) <span class="op">=</span> tf.keras.datasets.mnist.load_data()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>X_train <span class="op">=</span> X_train[:,:,:,<span class="va">None</span>]<span class="op">/</span><span class="fl">255.0</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>X_test <span class="op">=</span> X_test[:,:,:,<span class="va">None</span>]<span class="op">/</span><span class="fl">255.0</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>Y_train <span class="op">=</span> Y_train.astype(np.int32)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>Y_test <span class="op">=</span> Y_test.astype(np.int32)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>X_train.shape, Y_train.shape, X_test.shape, Y_test.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>((60000, 28, 28, 1), (60000,), (10000, 28, 28, 1), (10000,))</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>dst_train <span class="op">=</span> tf.data.Dataset.from_tensor_slices((X_train, Y_train))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>dst_val <span class="op">=</span> tf.data.Dataset.from_tensor_slices((X_test, Y_test))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> {</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"BATCH_SIZE"</span>: <span class="dv">256</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"EPOCHS"</span>: <span class="dv">50</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"LEARNING_RATE"</span>: <span class="fl">3e-4</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> ConfigDict(config)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>config</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>BATCH_SIZE: 256
+EPOCHS: 50
+LEARNING_RATE: 0.0003</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>wandb.init(project<span class="op">=</span><span class="st">"MNIST_JAX"</span>,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>           name<span class="op">=</span><span class="st">"Single_Forward"</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>           job_type<span class="op">=</span><span class="st">"training"</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>           config<span class="op">=</span>config,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>           mode<span class="op">=</span><span class="st">"online"</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>           )</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> config</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>config</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Failed to detect the name of this notebook, you can set it manually with the WANDB_NOTEBOOK_NAME environment variable to enable code saving.
+wandb: Currently logged in as: jorgvt. Use `wandb login --relogin` to force relogin</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+Tracking run with wandb version 0.15.0
+</div>
+<div class="cell-output cell-output-display">
+Run data is saved locally in <code>/media/disk/users/vitojor/JaxPlayground/Notebooks/00_Supervised/wandb/run-20230426_173335-ovzphed8</code>
+</div>
+<div class="cell-output cell-output-display">
+Syncing run <strong><a href="https://wandb.ai/jorgvt/MNIST_JAX/runs/ovzphed8" target="_blank">Single_Forward</a></strong> to <a href="https://wandb.ai/jorgvt/MNIST_JAX" target="_blank">Weights &amp; Biases</a> (<a href="https://wandb.me/run" target="_blank">docs</a>)<br>
+</div>
+<div class="cell-output cell-output-display">
+ View project at <a href="https://wandb.ai/jorgvt/MNIST_JAX" target="_blank">https://wandb.ai/jorgvt/MNIST_JAX</a>
+</div>
+<div class="cell-output cell-output-display">
+ View run at <a href="https://wandb.ai/jorgvt/MNIST_JAX/runs/ovzphed8" target="_blank">https://wandb.ai/jorgvt/MNIST_JAX/runs/ovzphed8</a>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>BATCH_SIZE: 256
+EPOCHS: 50
+LEARNING_RATE: 0.0003</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>dst_train_rdy <span class="op">=</span> dst_train.batch(config.BATCH_SIZE)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>dst_val_rdy <span class="op">=</span> dst_val.batch(config.BATCH_SIZE)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="define-the-model-were-going-to-use" class="level2">
+<h2 class="anchored" data-anchor-id="define-the-model-were-going-to-use">Define the model we’re going to use</h2>
+<blockquote class="blockquote">
+<p>It’s going to be a very simple model just for demonstration purposes.</p>
+</blockquote>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Model(nn.Module):</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">@nn.compact</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__call__</span>(<span class="va">self</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                 inputs,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                 <span class="op">**</span>kwargs,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                 ):</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> nn.Conv(features<span class="op">=</span><span class="dv">32</span>, kernel_size<span class="op">=</span>(<span class="dv">3</span>,<span class="dv">3</span>))(inputs)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> nn.relu(outputs)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> nn.max_pool(outputs, window_shape<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">2</span>), strides<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">2</span>))</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> nn.Conv(features<span class="op">=</span><span class="dv">64</span>, kernel_size<span class="op">=</span>(<span class="dv">3</span>,<span class="dv">3</span>))(outputs)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> nn.relu(outputs)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> nn.max_pool(outputs, window_shape<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">2</span>), strides<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">2</span>))</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> <span class="bu">reduce</span>(outputs, <span class="st">"b h w c -&gt; b c"</span>, reduction<span class="op">=</span><span class="st">"mean"</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        outputs <span class="op">=</span> nn.Dense(<span class="dv">10</span>)(outputs)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> outputs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="define-the-metrics-with-clu" class="level2">
+<h2 class="anchored" data-anchor-id="define-the-metrics-with-clu">Define the metrics with <code>clu</code></h2>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@struct.dataclass</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Metrics(metrics.Collection):</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Collection of metrics to be tracked during training."""</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    accuracy: metrics.Accuracy</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    loss: metrics.Average.from_output(<span class="st">"loss"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>By default, <code>TrainState</code> doesn’t include metrics, but it’s very easy to subclass it so that it does:</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> TrainState(train_state.TrainState):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    metrics: Metrics</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We’ll define a function that initializes the <code>TrainState</code> from a module, a rng key and some optimizer:</p>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> create_train_state(module, key, tx, input_shape):</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Creates the initial `TrainState`."""</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    params <span class="op">=</span> module.init(key, jnp.ones(input_shape))[<span class="st">"params"</span>]</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> TrainState.create(</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        apply_fn<span class="op">=</span>module.<span class="bu">apply</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        params<span class="op">=</span>params,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        tx<span class="op">=</span>tx,</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        metrics<span class="op">=</span>Metrics.empty()</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="defining-the-training-step" class="level2">
+<h2 class="anchored" data-anchor-id="defining-the-training-step">Defining the training step</h2>
+<blockquote class="blockquote">
+<p>We want to write a function that takes the <code>TrainState</code> and a batch of data can performs an optimization step.</p>
+</blockquote>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jax.jit</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_step(state, batch):</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Train for a single step."""</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    inputs, labels <span class="op">=</span> batch</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> loss_fn(params):</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>        pred <span class="op">=</span> state.apply_fn({<span class="st">"params"</span>: params}, inputs)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> optax.softmax_cross_entropy_with_integer_labels(logits<span class="op">=</span>pred, labels<span class="op">=</span>labels).mean()</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> loss, pred</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    (loss, pred), grads <span class="op">=</span> jax.value_and_grad(loss_fn, has_aux<span class="op">=</span><span class="va">True</span>)(state.params)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> state.apply_gradients(grads<span class="op">=</span>grads)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> compute_metrics(state):</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        metric_updates <span class="op">=</span> state.metrics.single_from_model_output(</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>            logits<span class="op">=</span>pred, labels<span class="op">=</span>labels, loss<span class="op">=</span>loss,</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        metrics <span class="op">=</span> state.metrics.merge(metric_updates)</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> state.replace(metrics<span class="op">=</span>metrics)</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> state</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> compute_metrics(state)</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>In their example, they don’t calculate the metrics at the same time. I think it is kind of a waste because it means having to perform a new forward pass, but we’ll follow as of now. Let’s define a function to perform metric calculation:</p>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jax.jit</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_metrics(<span class="op">*</span>, state, batch):</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Obtaining the metrics for a given batch."""</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    inputs, labels <span class="op">=</span> batch</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> state.apply_fn({<span class="st">"params"</span>: state.params}, inputs)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> optax.softmax_cross_entropy_with_integer_labels(logits<span class="op">=</span>pred, labels<span class="op">=</span>labels).mean()</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    metric_updates <span class="op">=</span> state.metrics.single_from_model_output(</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        logits<span class="op">=</span>pred, labels<span class="op">=</span>labels, loss<span class="op">=</span>loss,</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    metrics <span class="op">=</span> state.metrics.merge(metric_updates)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> state.replace(metrics<span class="op">=</span>metrics)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> state</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="train-the-model" class="level2">
+<h2 class="anchored" data-anchor-id="train-the-model">Train the model!</h2>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>state <span class="op">=</span> create_train_state(Model(), random.PRNGKey(<span class="dv">0</span>), optax.adam(config.LEARNING_RATE), input_shape<span class="op">=</span>(<span class="dv">1</span>,<span class="dv">28</span>,<span class="dv">28</span>,<span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>metrics_history <span class="op">=</span> {</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"train_loss"</span>: [],</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"val_loss"</span>: [],</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"train_accuracy"</span>: [],</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"val_accuracy"</span>: [],</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(config.EPOCHS):</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">## Training</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> batch <span class="kw">in</span> dst_train_rdy.as_numpy_iterator():</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> train_step(state, batch)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        <span class="co"># state = compute_metrics(state=state, batch=batch)</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># break</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">## Log the metrics</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name, value <span class="kw">in</span> state.metrics.compute().items():</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>        metrics_history[<span class="ss">f"train_</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">"</span>].append(value)</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">##&nbsp;Empty the metrics</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> state.replace(metrics<span class="op">=</span>state.metrics.empty())</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">## Evaluation</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> batch <span class="kw">in</span> dst_val_rdy.as_numpy_iterator():</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> compute_metrics(state<span class="op">=</span>state, batch<span class="op">=</span>batch)</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># break</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name, value <span class="kw">in</span> state.metrics.compute().items():</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>        metrics_history[<span class="ss">f"val_</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">"</span>].append(value)</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> state.replace(metrics<span class="op">=</span>state.metrics.empty())</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>    wandb.log({<span class="st">"epoch"</span>: epoch<span class="op">+</span><span class="dv">1</span>, <span class="op">**</span>{name:values[<span class="op">-</span><span class="dv">1</span>] <span class="cf">for</span> name, values <span class="kw">in</span> metrics_history.items()}})</span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'Epoch </span><span class="sc">{</span>epoch<span class="sc">}</span><span class="ss"> -&gt; [Train] Loss: </span><span class="sc">{</span>metrics_history[<span class="st">"train_loss"</span>][<span class="op">-</span><span class="dv">1</span>]<span class="sc">}</span><span class="ss"> | Accuracy: </span><span class="sc">{</span>metrics_history[<span class="st">"train_accuracy"</span>][<span class="op">-</span><span class="dv">1</span>]<span class="sc">}</span><span class="ss"> [Val] Loss: </span><span class="sc">{</span>metrics_history[<span class="st">"val_loss"</span>][<span class="op">-</span><span class="dv">1</span>]<span class="sc">}</span><span class="ss"> | Accuracy: </span><span class="sc">{</span>metrics_history[<span class="st">"val_accuracy"</span>][<span class="op">-</span><span class="dv">1</span>]<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># break</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-04-26 17:33:50.399662: I tensorflow/core/common_runtime/executor.cc:1197] [/device:CPU:0] (DEBUG INFO) Executor start aborting (this does not indicate an error and you can ignore this message): INVALID_ARGUMENT: You must feed a value for placeholder tensor 'Placeholder/_1' with dtype int32 and shape [60000]
+     [[{{node Placeholder/_1}}]]
+2023-04-26 17:33:53.381922: I tensorflow/core/common_runtime/executor.cc:1197] [/device:CPU:0] (DEBUG INFO) Executor start aborting (this does not indicate an error and you can ignore this message): INVALID_ARGUMENT: You must feed a value for placeholder tensor 'Placeholder/_1' with dtype int32 and shape [10000]
+     [[{{node Placeholder/_1}}]]</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Epoch 0 -&gt; [Train] Loss: 2.182008743286133 | Accuracy: 0.2583500146865845 [Val] Loss: 1.936364769935608 | Accuracy: 0.42110002040863037
+Epoch 1 -&gt; [Train] Loss: 1.6769200563430786 | Accuracy: 0.4977000057697296 [Val] Loss: 1.4756618738174438 | Accuracy: 0.5753000378608704
+Epoch 2 -&gt; [Train] Loss: 1.3775689601898193 | Accuracy: 0.593250036239624 [Val] Loss: 1.263392448425293 | Accuracy: 0.6458000540733337
+Epoch 3 -&gt; [Train] Loss: 1.2068145275115967 | Accuracy: 0.6537833213806152 [Val] Loss: 1.1156055927276611 | Accuracy: 0.6897000074386597
+Epoch 4 -&gt; [Train] Loss: 1.081493616104126 | Accuracy: 0.6955500245094299 [Val] Loss: 1.0011286735534668 | Accuracy: 0.7230000495910645
+Epoch 5 -&gt; [Train] Loss: 0.9830330014228821 | Accuracy: 0.7260167002677917 [Val] Loss: 0.909456729888916 | Accuracy: 0.751300036907196
+Epoch 6 -&gt; [Train] Loss: 0.9034460186958313 | Accuracy: 0.7495499849319458 [Val] Loss: 0.8353870511054993 | Accuracy: 0.7705000638961792
+Epoch 7 -&gt; [Train] Loss: 0.837811291217804 | Accuracy: 0.7681500315666199 [Val] Loss: 0.7737129926681519 | Accuracy: 0.7864000201225281
+Epoch 8 -&gt; [Train] Loss: 0.7825695872306824 | Accuracy: 0.7839333415031433 [Val] Loss: 0.7215777039527893 | Accuracy: 0.8014000654220581
+Epoch 9 -&gt; [Train] Loss: 0.7353348731994629 | Accuracy: 0.7968666553497314 [Val] Loss: 0.6768519878387451 | Accuracy: 0.8164000511169434
+Epoch 10 -&gt; [Train] Loss: 0.6941709518432617 | Accuracy: 0.8088499903678894 [Val] Loss: 0.6378747820854187 | Accuracy: 0.8267000317573547
+Epoch 11 -&gt; [Train] Loss: 0.6577768921852112 | Accuracy: 0.8183333277702332 [Val] Loss: 0.6033924221992493 | Accuracy: 0.835800051689148
+Epoch 12 -&gt; [Train] Loss: 0.625186562538147 | Accuracy: 0.8272500038146973 [Val] Loss: 0.572777509689331 | Accuracy: 0.8445000648498535
+Epoch 13 -&gt; [Train] Loss: 0.5957895517349243 | Accuracy: 0.8355000019073486 [Val] Loss: 0.5452829003334045 | Accuracy: 0.8528000116348267
+Epoch 14 -&gt; [Train] Loss: 0.5690935850143433 | Accuracy: 0.8436833620071411 [Val] Loss: 0.520549476146698 | Accuracy: 0.8609000444412231
+Epoch 15 -&gt; [Train] Loss: 0.5447360277175903 | Accuracy: 0.8504000306129456 [Val] Loss: 0.4981409013271332 | Accuracy: 0.8666000366210938
+Epoch 16 -&gt; [Train] Loss: 0.5224463939666748 | Accuracy: 0.8563166856765747 [Val] Loss: 0.47782716155052185 | Accuracy: 0.8708000183105469
+Epoch 17 -&gt; [Train] Loss: 0.5019102692604065 | Accuracy: 0.8618000149726868 [Val] Loss: 0.4594748020172119 | Accuracy: 0.8742000460624695
+Epoch 18 -&gt; [Train] Loss: 0.48303425312042236 | Accuracy: 0.8670666813850403 [Val] Loss: 0.4426192343235016 | Accuracy: 0.8786000609397888
+Epoch 19 -&gt; [Train] Loss: 0.4656265377998352 | Accuracy: 0.8720833659172058 [Val] Loss: 0.4271697700023651 | Accuracy: 0.8813000321388245
+Epoch 20 -&gt; [Train] Loss: 0.44959351420402527 | Accuracy: 0.8765333294868469 [Val] Loss: 0.41317644715309143 | Accuracy: 0.8841000199317932
+Epoch 21 -&gt; [Train] Loss: 0.4347400665283203 | Accuracy: 0.8805333375930786 [Val] Loss: 0.400164932012558 | Accuracy: 0.8879000544548035
+Epoch 22 -&gt; [Train] Loss: 0.4210180938243866 | Accuracy: 0.8843333721160889 [Val] Loss: 0.38827279210090637 | Accuracy: 0.8905000686645508
+Epoch 23 -&gt; [Train] Loss: 0.40825262665748596 | Accuracy: 0.8876000046730042 [Val] Loss: 0.3773591220378876 | Accuracy: 0.893500030040741
+Epoch 24 -&gt; [Train] Loss: 0.39640703797340393 | Accuracy: 0.8908666968345642 [Val] Loss: 0.3671402335166931 | Accuracy: 0.8960000276565552
+Epoch 25 -&gt; [Train] Loss: 0.3853464722633362 | Accuracy: 0.893500030040741 [Val] Loss: 0.3577060401439667 | Accuracy: 0.8972000479698181
+Epoch 26 -&gt; [Train] Loss: 0.3750644028186798 | Accuracy: 0.8962500095367432 [Val] Loss: 0.3489246666431427 | Accuracy: 0.8987000584602356
+Epoch 27 -&gt; [Train] Loss: 0.36541470885276794 | Accuracy: 0.8986333608627319 [Val] Loss: 0.3407832980155945 | Accuracy: 0.9004000425338745
+Epoch 28 -&gt; [Train] Loss: 0.3564613461494446 | Accuracy: 0.9010833501815796 [Val] Loss: 0.3331397473812103 | Accuracy: 0.902400016784668
+Epoch 29 -&gt; [Train] Loss: 0.3480415642261505 | Accuracy: 0.902916669845581 [Val] Loss: 0.3259875178337097 | Accuracy: 0.9034000635147095
+Epoch 30 -&gt; [Train] Loss: 0.34014928340911865 | Accuracy: 0.9047333598136902 [Val] Loss: 0.3192983865737915 | Accuracy: 0.9043000340461731
+Epoch 31 -&gt; [Train] Loss: 0.3327358663082123 | Accuracy: 0.906333327293396 [Val] Loss: 0.31295037269592285 | Accuracy: 0.9062000513076782
+Epoch 32 -&gt; [Train] Loss: 0.325710266828537 | Accuracy: 0.9078666567802429 [Val] Loss: 0.30704569816589355 | Accuracy: 0.9079000353813171
+Epoch 33 -&gt; [Train] Loss: 0.319106787443161 | Accuracy: 0.9093833565711975 [Val] Loss: 0.30143722891807556 | Accuracy: 0.909600019454956
+Epoch 34 -&gt; [Train] Loss: 0.3128489553928375 | Accuracy: 0.9111666679382324 [Val] Loss: 0.296077698469162 | Accuracy: 0.9110000729560852
+Epoch 35 -&gt; [Train] Loss: 0.30691418051719666 | Accuracy: 0.9125999808311462 [Val] Loss: 0.2910052239894867 | Accuracy: 0.9123000502586365
+Epoch 36 -&gt; [Train] Loss: 0.3013036549091339 | Accuracy: 0.9142000079154968 [Val] Loss: 0.28622308373451233 | Accuracy: 0.9141000509262085
+Epoch 37 -&gt; [Train] Loss: 0.2959589958190918 | Accuracy: 0.9154333472251892 [Val] Loss: 0.28169429302215576 | Accuracy: 0.9154000282287598
+Epoch 38 -&gt; [Train] Loss: 0.29088759422302246 | Accuracy: 0.9169000387191772 [Val] Loss: 0.27736854553222656 | Accuracy: 0.9163000583648682
+Epoch 39 -&gt; [Train] Loss: 0.28605058789253235 | Accuracy: 0.9180999994277954 [Val] Loss: 0.273225873708725 | Accuracy: 0.9175000190734863
+Epoch 40 -&gt; [Train] Loss: 0.2814214527606964 | Accuracy: 0.9194666743278503 [Val] Loss: 0.26928025484085083 | Accuracy: 0.9187000393867493
+Epoch 41 -&gt; [Train] Loss: 0.277006596326828 | Accuracy: 0.9207333326339722 [Val] Loss: 0.2654680609703064 | Accuracy: 0.9199000597000122
+Epoch 42 -&gt; [Train] Loss: 0.2727579176425934 | Accuracy: 0.9218500256538391 [Val] Loss: 0.2618121802806854 | Accuracy: 0.921000063419342
+Epoch 43 -&gt; [Train] Loss: 0.26871034502983093 | Accuracy: 0.9228166937828064 [Val] Loss: 0.25826191902160645 | Accuracy: 0.9226000308990479
+Epoch 44 -&gt; [Train] Loss: 0.26478293538093567 | Accuracy: 0.9237833619117737 [Val] Loss: 0.25480398535728455 | Accuracy: 0.9236000180244446
+Epoch 45 -&gt; [Train] Loss: 0.26100045442581177 | Accuracy: 0.9246333241462708 [Val] Loss: 0.2515222132205963 | Accuracy: 0.924500048160553
+Epoch 46 -&gt; [Train] Loss: 0.2573975622653961 | Accuracy: 0.9256166815757751 [Val] Loss: 0.24827086925506592 | Accuracy: 0.9252000451087952
+Epoch 47 -&gt; [Train] Loss: 0.2538735866546631 | Accuracy: 0.9266499876976013 [Val] Loss: 0.24520094692707062 | Accuracy: 0.9265000224113464
+Epoch 48 -&gt; [Train] Loss: 0.2504808008670807 | Accuracy: 0.9275833368301392 [Val] Loss: 0.24217760562896729 | Accuracy: 0.9275000691413879
+Epoch 49 -&gt; [Train] Loss: 0.24721772968769073 | Accuracy: 0.9284166693687439 [Val] Loss: 0.23932170867919922 | Accuracy: 0.9280000329017639
+CPU times: user 1min 7s, sys: 10.7 s, total: 1min 18s
+Wall time: 26.1 s</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>wandb.finish()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+Waiting for W&amp;B process to finish... <strong style="color:green">(success).</strong>
+</div>
+<div class="cell-output cell-output-display">
+
+<style>
+    table.wandb td:nth-child(1) { padding: 0 10px; text-align: left ; width: auto;} td:nth-child(2) {text-align: left ; width: 100%}
+    .wandb-row { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; width: 100% }
+    .wandb-col { display: flex; flex-direction: column; flex-basis: 100%; flex: 1; padding: 10px; }
+    </style>
+<div class="wandb-row"><div class="wandb-col"><h3 class="anchored">Run history:</h3><br>
+<table class="wandb table table-sm table-striped small" data-quarto-postprocess="true">
+<tbody>
+<tr class="odd">
+<td>train_accuracy</td>
+<td>▁▄▄▅▆▆▆▆▇▇▇▇▇▇▇▇▇▇██████████████████████</td>
+</tr>
+<tr class="even">
+<td>train_loss</td>
+<td>█▆▅▄▄▃▃▃▃▂▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td>val_accuracy</td>
+<td>▁▃▄▅▆▆▆▆▇▇▇▇▇▇▇▇▇▇▇█████████████████████</td>
+</tr>
+<tr class="even">
+<td>val_loss</td>
+<td>█▆▅▅▄▃▃▃▃▃▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁</td>
+</tr>
+</tbody>
+</table>
+<br>
+
+<section id="run-summary" class="level3 wandb-col">
+<h3 class="anchored" data-anchor-id="run-summary">Run summary:</h3>
+<br>
+
+<table class="wandb table table-sm table-striped small" data-quarto-postprocess="true">
+<tbody>
+<tr class="odd">
+<td>train_accuracy</td>
+<td>0.92842</td>
+</tr>
+<tr class="even">
+<td>train_loss</td>
+<td>0.24722</td>
+</tr>
+<tr class="odd">
+<td>val_accuracy</td>
+<td>0.928</td>
+</tr>
+<tr class="even">
+<td>val_loss</td>
+<td>0.23932</td>
+</tr>
+</tbody>
+</table>
+</section>
+<br></div></div>
+</div>
+<div class="cell-output cell-output-display">
+ View run <strong style="color:#cdcd00">Single_Forward</strong> at: <a href="https://wandb.ai/jorgvt/MNIST_JAX/runs/ovzphed8" target="_blank">https://wandb.ai/jorgvt/MNIST_JAX/runs/ovzphed8</a><br>Synced 6 W&amp;B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+</div>
+<div class="cell-output cell-output-display">
+Find logs at: <code>./wandb/run-20230426_173335-ovzphed8/logs</code>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
