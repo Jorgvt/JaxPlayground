@@ -1,0 +1,12 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - section: Supervised
+        contents:
+          - 00_Supervised/00_00_IQA.ipynb
+          - 00_Supervised/00_00b_IQA_Parametric.ipynb
+          - 00_Supervised/00_00b_IQA_TrainState.ipynb.ipynb
+          - 00_Supervised/00_01_Image_Classification_TrainState.ipynb
+          - 00_Supervised/00_01b_Img_Cls_Wandb.ipynb
+          - 00_Supervised/00_01c_Checkpointing.ipynb

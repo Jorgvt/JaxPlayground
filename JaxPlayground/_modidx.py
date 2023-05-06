@@ -5,4 +5,9 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://Jorgvt.github.io',
                 'git_url': 'https://github.com/Jorgvt/JaxPlayground',
                 'lib_path': 'JaxPlayground'},
-  'syms': {}}
+  'syms': { 'JaxPlayground.utils.constraints': { 'JaxPlayground.utils.constraints.clip_layer': ( '03_Utils/00_parameter_constrains.html#clip_layer',
+                                                                                                 'JaxPlayground/utils/constraints.py'),
+                                                 'JaxPlayground.utils.constraints.clip_layer_kernel': ( '03_Utils/00_parameter_constrains.html#clip_layer_kernel',
+                                                                                                        'JaxPlayground/utils/constraints.py')},
+            'JaxPlayground.utils.wandb': { 'JaxPlayground.utils.wandb.flatten_params': ( '03_Utils/01_wandb_weights_logging.html#flatten_params',
+                                                                                         'JaxPlayground/utils/wandb.py')}}}
